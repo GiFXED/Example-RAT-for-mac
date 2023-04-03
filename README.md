@@ -6,7 +6,7 @@ This RAT is designed to allow remote access and control of Mac operating systems
 
 - Allows remote access to target machine
 - Supports basic shell commands
-- Includes obfuscation and anti-detection techniques
+- Includes anti-detection techniques
 
 ## Installation
 
