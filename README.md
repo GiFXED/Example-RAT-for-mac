@@ -1,6 +1,6 @@
 # GiFXED Remote Access Trojan (RAT) for Mac
 
-This RAT is designed to allow remote access and control of Mac operating systems. It was created by the hacking group GiFXED, and is intended for malicious use only.
+This RAT is designed to allow remote access and control of Mac operating systems. It was created by the hacking group GiFXED, and is intended for educational use only.
 
 ## Features
 
